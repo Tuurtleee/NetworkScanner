@@ -26,12 +26,12 @@ int main(int argc, char *argv[]){
     }
 
     // ? Communication avec le serveur
-    char buffer[100];
+    char buffer[200];
     int n;
     while (1)
     {
         printf("\n\033[0;36mNetworkScanner>>>\033[0;37m");
-        fgets(buffer, 100, stdin);
+        fgets(buffer, 200, stdin);
         n = send(sockfd, buffer, strlen(buffer), 0);
         if(strcmp(buffer, "exit\n") == 0){
             break;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
             perror("cliecho : erreur send");
             exit(1);
         }
-        n = recv(sockfd, buffer, 100, 0);
+        n = recv(sockfd, buffer, 200, 0);
         if (n < 0)
         {
             perror("cliecho : erreur recv");

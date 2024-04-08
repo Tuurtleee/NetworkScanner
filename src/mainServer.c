@@ -50,7 +50,7 @@ int main()
     }
 
     // ! Dialogue avec le client
-    char buffer[100];
+    char buffer[200];
     int n;
 
     // ? Scanner variables
@@ -61,7 +61,7 @@ int main()
     while (1)
     {
         // Réception du message du client
-        n = recv(dialogSocket, buffer, 100, 0);
+        n = recv(dialogSocket, buffer, 200, 0);
         if (n < 0)
         {
             perror("servecho : erreur recv\n");
