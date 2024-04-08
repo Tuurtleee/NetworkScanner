@@ -1,7 +1,10 @@
 # Prerequisites
 *.d
-
-# Object files
+# Executable files
+*.out
+*.exe
+*.run
+*.bin
 *.o
 *.ko
 *.obj
