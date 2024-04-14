@@ -1,4 +1,6 @@
 #include "mainServer.h"
+#include "verticalScan.h"
+
 // Port de notre serveur
 #define SERV_PORT 5000 // Attention à ne pas choisir un port réservé par notre système (plus que 1024)
 
@@ -55,7 +57,7 @@ int main()
 
     // ? Scanner variables
     int scanType=0; //0: scan horizontal 1: scan vertical 2: scan horizontal et vertical 3: une range de ports est spécifiée
-    char* scanTarget;
+    char* scanTarget = "127.0.0.1";
     // ???? //
 
     while (1)
@@ -86,21 +88,42 @@ int main()
             close(dialogSocket);
             exit(0);
         }
-        else if(prefix("scan",buffer)){
+        else if(prefix("scan",buffer) && buffer[strlen(buffer) - 1] != '\0'){
             char* token = strtok(buffer, " ");
-            token = strtok(NULL, " ");
-            if(token!=NULL){
-                scanType = atoi(token);
-                token = strtok(NULL, " ");
-                if(token!=NULL){
+            while(token != NULL){
+                if(strcmp(token,"scan")==0){
+                    token = strtok(NULL, " ");
+                    scanType = atoi(token);
+                    printf("scanType: %d\n", scanType);
+                }
+                else if(strcmp(token,"-target")==0){
+                    token = strtok(NULL, " ");
                     scanTarget = token;
                 }
+                token = strtok(NULL, " ");
             }
             if(scanType==0){
                 send(dialogSocket, "Horizontal scan\n", 200, 0);
             }
             else if(scanType==1){
-                send(dialogSocket, "Vertical scan\n", 200, 0);
+                send(dialogSocket, "\nVertical scan\n", 200, 0);
+                int* openPorts = malloc(65535*sizeof(int));
+                char sendBuffer[200];
+                for(int i = 0; i < 65536; i++)
+                {
+                    openPorts[i] = 0;
+                }
+                openPorts = verticalScan(scanTarget,openPorts);
+                for(int i = 0; i < 65535; i++)
+                {
+                    if(openPorts[i] == 1)
+                    {
+                        snprintf(sendBuffer, sizeof(sendBuffer), "Port \033[0;31m%d\033[0;37m ouvert\n", i);
+                        send(dialogSocket, sendBuffer, 200, 0);
+                    }
+                }
+                send(dialogSocket, "Vertical scan done\n", 200, 0);
+                send(dialogSocket, "ENDOFSTREAM", 200, 0);
             }
             else if(scanType==2){
                 send(dialogSocket, "Horizontal and vertical scan\n", 200, 0);
