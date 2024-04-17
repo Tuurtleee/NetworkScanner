@@ -16,6 +16,36 @@ int prefix(const char *pre, const char *str)
     return strncmp(pre, str, strlen(pre)) == 0;
 }
 
+void generateIPs(char *target, char *mask, char **ips) {
+    struct in_addr targetAddr;
+    struct in_addr maskAddr;
+    struct in_addr networkAddr;
+    struct in_addr broadcastAddr;
+    unsigned long int network;
+    unsigned long int broadcast;
+    unsigned long int ip;
+    int index = 0;
+
+    inet_aton(target, &targetAddr);
+    inet_aton(mask, &maskAddr);
+
+    networkAddr.s_addr = targetAddr.s_addr & maskAddr.s_addr;
+    broadcastAddr.s_addr = targetAddr.s_addr | (~maskAddr.s_addr);
+
+    network = ntohl(networkAddr.s_addr);
+    broadcast = ntohl(broadcastAddr.s_addr);
+
+    for (ip = network + 1; ip < broadcast; ip++) {
+        char str[INET_ADDRSTRLEN];
+        struct in_addr addr;
+        addr.s_addr = htonl(ip);
+        inet_ntop(AF_INET, &addr, str, INET_ADDRSTRLEN);
+        ips[index++] = strdup(str); 
+    }
+    ips[index] = NULL;
+}
+
+
 int main()
 {
     // ! Création de la socket
@@ -57,7 +87,9 @@ int main()
 
     // ? Scanner variables
     int scanType=0; //0: scan horizontal 1: scan vertical 2: scan horizontal et vertical 3: une range de ports est spécifiée
-    char* scanTarget = "127.0.0.1";
+    char* scanVTarget = "127.0.0.1";
+    char* scanHTarget = "127.0.0.0";
+    char* scanHMask = "255.0.0.0";
     // ???? //
 
     while (1)
@@ -96,14 +128,57 @@ int main()
                     scanType = atoi(token);
                     printf("scanType: %d\n", scanType);
                 }
-                else if(strcmp(token,"-target")==0){
+                else if(strcmp(token,"-targetV")==0){
                     token = strtok(NULL, " ");
-                    scanTarget = token;
+                    scanVTarget = token;
+                }
+                else if(strcmp(token,"-targetH")==0){
+                    token = strtok(NULL, " ");
+                    scanHTarget = token;
+                }
+                else if(strcmp(token,"-mask")==0){
+                    token = strtok(NULL, " ");
+                    scanHMask = token;
                 }
                 token = strtok(NULL, " ");
             }
             if(scanType==0){
-                send(dialogSocket, "Horizontal scan\n", 200, 0);
+                //On regarde si le scan horizontal est possible : on vérifie que si on applique le masque à l'adresse, on obtient bien l'adresse
+                struct in_addr target;
+                struct in_addr mask;
+                struct in_addr result;
+                inet_aton(scanHTarget, &target);
+                inet_aton(scanHMask, &mask);
+                result.s_addr = target.s_addr & mask.s_addr;
+                if(result.s_addr == target.s_addr){
+                    send(dialogSocket, "Horizontal scan\n", 200, 0);
+                    // On génère les adresses IP possibles
+                    char **ips = malloc(sizeof(char *) * 256);
+                    char sendBuffer[200];
+                    generateIPs(scanHTarget, scanHMask, ips); 
+                    
+                    for (int i = 0; ips[i] != NULL; i++) {
+                        printf("%s\n", ips[i]);
+                        //On fait un scan horizontal sur chaque adresse
+                        int response = horizontalScan(ips[i], scanHMask);
+                        if (response == 1) {
+                           snprintf(sendBuffer, sizeof(sendBuffer), "Appareil \033[0;31m%s\033[0;37m disponible\n", ips[i]);
+                           send(dialogSocket, sendBuffer, 200, 0);
+                        }
+                    }
+
+                    // On libère la mémoire
+                    for (int i = 0; ips[i] != NULL; i++) {
+                        free(ips[i]);
+                    }
+                    free(ips);
+
+                    char* response = horizontalScan(scanHTarget, scanHMask);
+                    
+                }
+                else{
+                    send(dialogSocket, "Invalid mask\n", 200, 0);
+                }
             }
             else if(scanType==1){
                 send(dialogSocket, "\nVertical scan\n", 200, 0);
@@ -113,7 +188,7 @@ int main()
                 {
                     openPorts[i] = 0;
                 }
-                openPorts = verticalScan(scanTarget,openPorts);
+                openPorts = verticalScan(scanVTarget,openPorts);
                 for(int i = 0; i < 65535; i++)
                 {
                     if(openPorts[i] == 1)
