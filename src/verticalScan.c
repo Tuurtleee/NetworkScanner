@@ -40,8 +40,8 @@ int *verticalScan(char *scanTarget, int *openPorts)
         FD_ZERO(&set);
         FD_SET(sockfd, &set);
         struct timeval timeout;
-        timeout.tv_sec = 2; 
-        timeout.tv_usec = 0;
+        timeout.tv_sec = 0; 
+        timeout.tv_usec = 500 * 1000; 
 
         if (select(sockfd + 1, NULL, &set, NULL, &timeout) > 0)
         {

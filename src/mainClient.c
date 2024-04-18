@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 #define SERVER_ADDRESS "127.0.0.1"
-#define SERVER_PORT "6666"
+#define SERVER_PORT "5000"
 
 // ? Variable globale pour le socket
 int sockfd;

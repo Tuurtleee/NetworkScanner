@@ -9,5 +9,6 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <sys/select.h>
+#include <netinet/ip_icmp.h>
 
-int horizontalScan(char *scanTarget, char *scanMask);
+int horizontalScan(char *scanTarget, char *scanMask, char** ips, int*ipscount);
